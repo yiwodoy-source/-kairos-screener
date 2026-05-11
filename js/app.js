@@ -124,13 +124,51 @@ document.addEventListener('DOMContentLoaded', () => {
         const topMatched = matchedSkills.slice(0, 3).join(', ');
         const reasoning = `Candidate shows ${finalScore}% alignment. ${matchedSkills.length > 0 ? `Strong presence of ${topMatched}.` : 'Limited direct skill overlap.'} Matches well in ${categoryScores.technical > 0.7 ? 'technical' : 'foundational'} requirements.`;
 
+        // Automation: Outreach & Interview Questions
+        const questions = missingSkills.length > 0
+            ? missingSkills.slice(0, 2).map(s => `How have you approached ${s} in previous roles, even if not explicitly listed on your profile?`)
+            : [`Tell us about a time you scaled a ${matchedSkills[0] || 'technical'} system.`];
+
+        const outreach = tier === "Strong match"
+            ? `Hi Candidate, we were impressed by your ${topMatched} experience and would love to chat...`
+            : `Hi Candidate, thanks for applying. While we see your background in ${matchedSkills[0] || 'technology'}, we are looking for...`;
+
         return {
             score: finalScore,
             tier,
             tierClass,
             matchedSkills,
             missingSkills,
-            reasoning
+            reasoning,
+            questions,
+            outreach
+        };
+    }
+
+    // --- Auto-Analysis Trigger ---
+    function checkAutoScore() {
+        const jd = jdTextarea.value.trim();
+        const candidates = resumeContainer.querySelectorAll('.candidate-tag');
+        if (jd.length > 50 && candidates.length > 0) {
+            scoreBtn.click();
+        }
+    }
+
+    jdTextarea.addEventListener('input', debounce(checkAutoScore, 2000));
+
+    // Observer for candidates container (since tags are added dynamically)
+    const observer = new MutationObserver(() => checkAutoScore());
+    observer.observe(resumeContainer, { childList: true });
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
         };
     }
 
@@ -214,6 +252,28 @@ document.addEventListener('DOMContentLoaded', () => {
                             </ul>
                         </div>
                     </div>
+
+                    <div class="automation-grid" style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px;">
+                         <div class="automation-box">
+                            <button class="copy-action" title="Copy Probes" data-copy="${c.questions.join('\n')}">
+                                <i data-lucide="copy" size="14"></i>
+                            </button>
+                            <div class="uppercase-label">INTERVIEW PROBES</div>
+                            <ul style="list-style: none; font-size: 13px; color: var(--text-secondary);">
+                                ${c.questions.map(q => `<li style="margin-bottom: 8px;">• ${q}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="automation-box">
+                            <button class="copy-action" title="Copy Draft" data-copy="${c.outreach}">
+                                <i data-lucide="copy" size="14"></i>
+                            </button>
+                            <div class="uppercase-label">OUTREACH DRAFT</div>
+                            <p style="font-size: 13px; color: var(--text-secondary); background: white; padding: 10px; border-radius: 6px; border: 1px solid var(--border-light);">
+                                ${c.outreach}
+                            </p>
+                        </div>
+                    </div>
+
                     <div class="reasoning">
                         <div class="uppercase-label">REASONING</div>
                         <p>${c.reasoning}</p>
@@ -221,7 +281,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            card.addEventListener('click', () => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.copy-action')) {
+                    const btn = e.target.closest('.copy-action');
+                    navigator.clipboard.writeText(btn.dataset.copy);
+                    const icon = btn.querySelector('i');
+                    btn.innerHTML = '<i data-lucide="check" size="14"></i>';
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        btn.innerHTML = '<i data-lucide="copy" size="14"></i>';
+                        lucide.createIcons();
+                    }, 2000);
+                    return;
+                }
                 card.classList.toggle('expanded');
             });
 
