@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const jdUpload = document.getElementById('jd-upload');
     const resumeUpload = document.getElementById('resume-upload');
     const exportBtn = document.querySelector('.results-header .btn-secondary');
+    const blindModeToggle = document.getElementById('blind-mode');
 
     let processedCandidates = [];
 
@@ -61,37 +62,75 @@ document.addEventListener('DOMContentLoaded', () => {
     jdUpload.addEventListener('click', () => handleFileUpload(jdUpload, jdTextarea, true));
     resumeUpload.addEventListener('click', () => handleFileUpload(resumeUpload, resumeContainer, false));
 
+    blindModeToggle.addEventListener('change', () => {
+        if (processedCandidates.length > 0) {
+            renderCandidates(processedCandidates);
+        }
+    });
+
     // --- Scoring Logic ---
 
     function calculateScore(jd, resume) {
-        const jdWords = new Set(jd.toLowerCase().match(/\w+/g));
-        const resumeWords = resume.toLowerCase().match(/\w+/g) || [];
+        const jdLower = jd.toLowerCase();
+        const resumeLower = resume.toLowerCase();
         
-        // Key terms extraction (mock)
-        const commonSkills = ['javascript', 'python', 'react', 'node.js', 'sql', 'aws', 'docker', 'typescript', 'architecture', 'agile', 'product', 'management', 'scaling', 'performance'];
-        const matchedSkills = commonSkills.filter(skill => jdWords.has(skill) && resume.toLowerCase().includes(skill));
-        const missingSkills = commonSkills.filter(skill => jdWords.has(skill) && !resume.toLowerCase().includes(skill));
+        const skillCategories = {
+            technical: ['javascript', 'python', 'react', 'node.js', 'sql', 'aws', 'docker', 'typescript', 'architecture', 'c++', 'java', 'go', 'rust', 'kubernetes', 'terraform'],
+            leadership: ['management', 'leadership', 'mentoring', 'lead', 'principal', 'strategy', 'roadmap', 'stakeholders'],
+            softSkills: ['agile', 'communication', 'teamwork', 'problem solving', 'collaboration', 'adaptability']
+        };
 
-        // Basic keyword matching score
-        let matchCount = 0;
-        jdWords.forEach(word => {
-            if (word.length > 4 && resume.toLowerCase().includes(word)) matchCount++;
+        let weights = { technical: 0.6, leadership: 0.2, softSkills: 0.2 };
+        let categoryScores = { technical: 0, leadership: 0, softSkills: 0 };
+        let matchedSkills = [];
+        let missingSkills = [];
+
+        Object.keys(skillCategories).forEach(cat => {
+            const skills = skillCategories[cat];
+            let catMatches = 0;
+            let catTotal = 0;
+
+            skills.forEach(skill => {
+                const inJD = jdLower.includes(skill);
+                if (inJD) {
+                    catTotal++;
+                    if (resumeLower.includes(skill)) {
+                        catMatches++;
+                        matchedSkills.push(skill);
+                    } else {
+                        missingSkills.push(skill);
+                    }
+                }
+            });
+
+            categoryScores[cat] = catTotal > 0 ? (catMatches / catTotal) : 0.5; // Neutral if not specified in JD
         });
 
-        const score = Math.min(95, Math.floor((matchCount / (jdWords.size * 0.1)) * 100));
+        // Weighted final score
+        let finalScore = Math.round(
+            (categoryScores.technical * weights.technical +
+             categoryScores.leadership * weights.leadership +
+             categoryScores.softSkills * weights.softSkills) * 100
+        );
+
+        // Cap score and add some variety based on keyword density
+        finalScore = Math.min(98, Math.max(15, finalScore));
         
         let tier = "Skip";
         let tierClass = "tier-skip";
-        if (score > 85) { tier = "Strong match"; tierClass = "tier-strong"; }
-        else if (score > 60) { tier = "Maybe"; tierClass = "tier-maybe"; }
+        if (finalScore > 80) { tier = "Strong match"; tierClass = "tier-strong"; }
+        else if (finalScore > 50) { tier = "Maybe"; tierClass = "tier-maybe"; }
+
+        const topMatched = matchedSkills.slice(0, 3).join(', ');
+        const reasoning = `Candidate shows ${finalScore}% alignment. ${matchedSkills.length > 0 ? `Strong presence of ${topMatched}.` : 'Limited direct skill overlap.'} Matches well in ${categoryScores.technical > 0.7 ? 'technical' : 'foundational'} requirements.`;
 
         return {
-            score,
+            score: finalScore,
             tier,
             tierClass,
             matchedSkills,
             missingSkills,
-            reasoning: `Based on keyword density and skill alignment, this candidate demonstrates a ${score}% overlap with the requirements. Strong match in ${matchedSkills.slice(0, 3).join(', ')}.`
+            reasoning
         };
     }
 
@@ -140,14 +179,21 @@ document.addEventListener('DOMContentLoaded', () => {
         candidateCount.innerText = `${candidates.length} candidates`;
         candidateList.innerHTML = '';
         
+        const isBlindMode = blindModeToggle.checked;
+
         candidates.forEach((c, index) => {
+            const displayName = isBlindMode ? `Candidate ${Math.random().toString(36).substring(7).toUpperCase()}` : c.name;
+
             const card = document.createElement('div');
             card.className = 'candidate-card staggered-entry';
             card.innerHTML = `
                 <div class="rank-num serif tabular">#${index + 1}</div>
                 <div class="candidate-info">
-                    <h3>${c.name}</h3>
-                    <div class="candidate-meta">${c.meta}</div>
+                    <h3>${displayName}</h3>
+                    <div class="candidate-meta">${isBlindMode ? "Identity redacted for bias-free screening" : c.meta}</div>
+                    <div class="match-bar-container">
+                        <div class="match-bar-fill" style="width: 0%;" data-target-width="${c.score}%"></div>
+                    </div>
                 </div>
                 <div class="score-group">
                     <div class="score-value tabular">${c.score}</div>
@@ -180,7 +226,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             candidateList.appendChild(card);
-            setTimeout(() => card.classList.add('fade-in-visible'), index * 100);
+            setTimeout(() => {
+                card.classList.add('fade-in-visible');
+                const bar = card.querySelector('.match-bar-fill');
+                if (bar) bar.style.width = bar.dataset.targetWidth;
+            }, index * 100);
         });
 
         lucide.createIcons();
