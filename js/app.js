@@ -12,8 +12,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const resumeUpload = document.getElementById('resume-upload');
     const exportBtn = document.querySelector('.results-header .btn-secondary');
     const blindModeToggle = document.getElementById('blind-mode');
+    const resetBtn = document.getElementById('reset-btn');
 
     let processedCandidates = [];
+
+    // --- Persistence ---
+    function saveToStorage() {
+        const data = {
+            jd: jdTextarea.value,
+            candidates: processedCandidates,
+            blindMode: blindModeToggle.checked
+        };
+        localStorage.setItem('kairos_workspace', JSON.stringify(data));
+    }
+
+    function loadFromStorage() {
+        const saved = localStorage.getItem('kairos_workspace');
+        if (saved) {
+            const data = JSON.parse(saved);
+            jdTextarea.value = data.jd || '';
+            processedCandidates = data.candidates || [];
+            blindModeToggle.checked = !!data.blindMode;
+
+            if (processedCandidates.length > 0) {
+                resultsSection.style.display = 'block';
+                renderCandidates(processedCandidates);
+            }
+        }
+    }
 
     // --- File Handling ---
 
@@ -62,10 +88,18 @@ document.addEventListener('DOMContentLoaded', () => {
     jdUpload.addEventListener('click', () => handleFileUpload(jdUpload, jdTextarea, true));
     resumeUpload.addEventListener('click', () => handleFileUpload(resumeUpload, resumeContainer, false));
 
+    resetBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear the entire workspace?')) {
+            localStorage.removeItem('kairos_workspace');
+            location.reload();
+        }
+    });
+
     blindModeToggle.addEventListener('change', () => {
         if (processedCandidates.length > 0) {
             renderCandidates(processedCandidates);
         }
+        saveToStorage();
     });
 
     // --- Scoring Logic ---
@@ -121,8 +155,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (finalScore > 80) { tier = "Strong match"; tierClass = "tier-strong"; }
         else if (finalScore > 50) { tier = "Maybe"; tierClass = "tier-maybe"; }
 
+        // Experience / Seniority detection (Simulation)
+        const seniorityKeywords = {
+            senior: ['senior', 'lead', 'principal', 'architect', 'staff', 'manager', 'director'],
+            junior: ['junior', 'intern', 'associate', 'entry', 'trainee']
+        };
+
+        let seniority = "Mid-level";
+        if (seniorityKeywords.senior.some(k => resumeLower.includes(k))) seniority = "Senior";
+        else if (seniorityKeywords.junior.some(k => resumeLower.includes(k))) seniority = "Junior";
+
         const topMatched = matchedSkills.slice(0, 3).join(', ');
-        const reasoning = `Candidate shows ${finalScore}% alignment. ${matchedSkills.length > 0 ? `Strong presence of ${topMatched}.` : 'Limited direct skill overlap.'} Matches well in ${categoryScores.technical > 0.7 ? 'technical' : 'foundational'} requirements.`;
+        const reasoning = `Candidate shows ${finalScore}% alignment at a ${seniority} level. ${matchedSkills.length > 0 ? `Strong presence of ${topMatched}.` : 'Limited direct skill overlap.'} Matches well in ${categoryScores.technical > 0.7 ? 'technical' : 'foundational'} requirements.`;
 
         // Automation: Outreach & Interview Questions
         const questions = missingSkills.length > 0
@@ -141,7 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
             missingSkills,
             reasoning,
             questions,
-            outreach
+            outreach,
+            seniority
         };
     }
 
@@ -154,7 +199,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    jdTextarea.addEventListener('input', debounce(checkAutoScore, 2000));
+    jdTextarea.addEventListener('input', debounce(() => {
+        checkAutoScore();
+        saveToStorage();
+    }, 2000));
 
     // Observer for candidates container (since tags are added dynamically)
     const observer = new MutationObserver(() => checkAutoScore());
@@ -197,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = calculateScore(jd, el.dataset.text);
                 processedCandidates.push({
                     name: el.dataset.name,
-                    meta: "Candidate profile parsed from PDF",
+                meta: res.seniority + " profile parsed from PDF",
                     ...res
                 });
             }
@@ -209,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 scoreBtn.disabled = false;
                 scoreBtn.innerHTML = `Score Resumes &rarr;`;
                 renderCandidates(processedCandidates);
+                saveToStorage();
             }, 1500);
         });
     }
@@ -338,6 +387,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') scoreBtn.click();
     });
+
+    // Initialize
+    loadFromStorage();
 });
 
 // Animations CSS
