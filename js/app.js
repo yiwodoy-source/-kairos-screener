@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportBtn = document.querySelector('.results-header .btn-secondary');
     const blindModeToggle = document.getElementById('blind-mode');
     const resetBtn = document.getElementById('reset-btn');
+    const tabList = document.getElementById('tab-list');
+    const tabAnalytics = document.getElementById('tab-analytics');
+    const listContainer = document.getElementById('candidate-list-container');
+    const analyticsView = document.getElementById('analytics-view');
+    const jdFeedback = document.getElementById('jd-feedback');
 
     let processedCandidates = [];
 
@@ -31,12 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saved) {
             const data = JSON.parse(saved);
             jdTextarea.value = data.jd || '';
+            if (jdTextarea.value) analyzeJD(jdTextarea.value);
             processedCandidates = data.candidates || [];
             blindModeToggle.checked = !!data.blindMode;
 
             if (processedCandidates.length > 0) {
                 resultsSection.style.display = 'block';
-                renderCandidates(processedCandidates);
+                // Trigger the 'All' tab to ensure it is active
+                const allTab = document.querySelector('.filter-tab[data-view="list"]');
+                if (allTab) allTab.click();
+                renderAnalytics();
             }
         }
     }
@@ -98,8 +107,24 @@ document.addEventListener('DOMContentLoaded', () => {
     blindModeToggle.addEventListener('change', () => {
         if (processedCandidates.length > 0) {
             renderCandidates(processedCandidates);
+            renderAnalytics();
         }
         saveToStorage();
+    });
+
+    tabList.addEventListener('click', () => {
+        tabList.classList.add('active');
+        tabAnalytics.classList.remove('active');
+        listContainer.style.display = 'block';
+        analyticsView.style.display = 'none';
+    });
+
+    tabAnalytics.addEventListener('click', () => {
+        tabAnalytics.classList.add('active');
+        tabList.classList.remove('active');
+        listContainer.style.display = 'none';
+        analyticsView.style.display = 'block';
+        renderAnalytics();
     });
 
     // --- Scoring Logic ---
@@ -191,6 +216,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Auto-Analysis Trigger ---
+    function analyzeJD(text) {
+        const biasWords = {
+            'rockstar': 'Inclusive alternative: "Highly skilled engineer"',
+            'ninja': 'Inclusive alternative: "Expert" or "Specialist"',
+            'crush it': 'Inclusive alternative: "Succeed" or "Excel"',
+            'competitive': 'Consider: "Collaborative" or "Growth-oriented" if appropriate',
+            'dominate': 'Consider: "Lead" or "Pioneer"'
+        };
+
+        const findings = [];
+        Object.keys(biasWords).forEach(word => {
+            if (text.toLowerCase().includes(word)) {
+                findings.push(`⚠️ <b>${word}</b>: ${biasWords[word]}`);
+            }
+        });
+
+        if (findings.length > 0) {
+            jdFeedback.style.display = 'block';
+            jdFeedback.innerHTML = `
+                <div style="background: var(--warning-bg); color: var(--warning); padding: 12px; border-radius: var(--radius-md); border: 1px solid #FFE4A6;">
+                    <div class="uppercase-label" style="color: var(--warning); margin-bottom: 8px;">JD OPTIMIZER FINDINGS</div>
+                    ${findings.map(f => `<p style="margin-bottom: 4px;">${f}</p>`).join('')}
+                </div>
+            `;
+        } else if (text.trim().length > 0) {
+            jdFeedback.style.display = 'block';
+            jdFeedback.innerHTML = `
+                <div style="background: var(--success-bg); color: var(--success); padding: 12px; border-radius: var(--radius-md); border: 1px solid #B7E4C7;">
+                    <div class="uppercase-label" style="color: var(--success); margin-bottom: 0;">✅ JD looks inclusive and balanced.</div>
+                </div>
+            `;
+        } else {
+            jdFeedback.style.display = 'none';
+        }
+    }
+
     function checkAutoScore() {
         const jd = jdTextarea.value.trim();
         const candidates = resumeContainer.querySelectorAll('.candidate-tag');
@@ -200,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     jdTextarea.addEventListener('input', debounce(() => {
+        analyzeJD(jdTextarea.value);
         checkAutoScore();
         saveToStorage();
     }, 2000));
@@ -257,13 +319,83 @@ document.addEventListener('DOMContentLoaded', () => {
                 scoreBtn.disabled = false;
                 scoreBtn.innerHTML = `Score Resumes &rarr;`;
                 renderCandidates(processedCandidates);
+                renderAnalytics();
                 saveToStorage();
             }, 1500);
         });
     }
 
-    function renderCandidates(candidates) {
-        candidateCount.innerText = `${candidates.length} candidates`;
+    function renderAnalytics() {
+        const seniorityCounts = { Senior: 0, 'Mid-level': 0, Junior: 0 };
+        const skillCounts = {};
+
+        processedCandidates.forEach(c => {
+            seniorityCounts[c.seniority] = (seniorityCounts[c.seniority] || 0) + 1;
+            c.matchedSkills.forEach(s => {
+                skillCounts[s] = (skillCounts[s] || 0) + 1;
+            });
+        });
+
+        // Render Seniority Chart
+        const seniorityChart = document.getElementById('seniority-chart');
+        seniorityChart.innerHTML = Object.entries(seniorityCounts).map(([label, count]) => {
+            const pct = processedCandidates.length > 0 ? (count / processedCandidates.length) * 100 : 0;
+            return `
+                <div style="font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>${label}</span>
+                        <span class="tabular">${count}</span>
+                    </div>
+                    <div class="match-bar-container" style="height: 6px; background: #f0f0f0;">
+                        <div class="match-bar-fill" style="width: ${pct}%;"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Render Skills Chart (Top 5)
+        const skillsChart = document.getElementById('skills-chart');
+        const sortedSkills = Object.entries(skillCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        const maxSkillCount = sortedSkills.length > 0 ? sortedSkills[0][1] : 1;
+
+        skillsChart.innerHTML = sortedSkills.map(([skill, count]) => {
+            const pct = (count / maxSkillCount) * 100;
+            return `
+                <div style="font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="text-transform: capitalize;">${skill}</span>
+                        <span class="tabular">${count}</span>
+                    </div>
+                    <div class="match-bar-container" style="height: 6px; background: #f0f0f0;">
+                        <div class="match-bar-fill" style="width: ${pct}%; background: var(--brand-amber);"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // --- View Handling ---
+    const filterTabs = document.querySelectorAll('.filter-tab[data-view="list"]');
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            filterTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            // Switch back to list view if in analytics
+            tabList.click();
+
+            const tier = tab.innerText;
+            if (tier === 'All') {
+                renderCandidates(processedCandidates);
+            } else {
+                const filtered = processedCandidates.filter(c => c.tier === tier);
+                renderCandidates(filtered, true); // true = don't reset count
+            }
+        });
+    });
+
+    function renderCandidates(candidates, isFiltered = false) {
+        if (!isFiltered) candidateCount.innerText = `${candidates.length} candidates`;
         candidateList.innerHTML = '';
         
         const isBlindMode = blindModeToggle.checked;

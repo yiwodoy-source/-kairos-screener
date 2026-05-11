@@ -51,6 +51,7 @@
                     <span>Drop JD PDF or click to upload</span>
                 </div>
                 <textarea class="writing-surface" placeholder="Paste the job description here..."></textarea>
+                <div id="jd-feedback" style="margin-top: 12px; font-size: 12px; display: none;"></div>
             </div>
 
             <!-- Candidate Resumes -->
@@ -94,15 +95,40 @@
                 </button>
             </div>
 
-            <div class="filter-row">
-                <div class="filter-tab active">All</div>
-                <div class="filter-tab">Strong match</div>
-                <div class="filter-tab">Maybe</div>
-                <div class="filter-tab">Skip</div>
+            <div class="filter-row" style="justify-content: space-between;">
+                <div style="display: flex; gap: 24px;">
+                    <div class="filter-tab active" data-view="list">All</div>
+                    <div class="filter-tab" data-view="list">Strong match</div>
+                    <div class="filter-tab" data-view="list">Maybe</div>
+                    <div class="filter-tab" data-view="list">Skip</div>
+                </div>
+                <div style="display: flex; gap: 8px; border-left: 1px solid var(--border-light); padding-left: 24px;">
+                    <div class="filter-tab active" id="tab-list">List View</div>
+                    <div class="filter-tab" id="tab-analytics">Analytics Dashboard</div>
+                </div>
             </div>
 
-            <div class="candidate-list" id="candidate-list">
-                <!-- Staggered cards will be injected here -->
+            <div id="candidate-list-container">
+                <div class="candidate-list" id="candidate-list">
+                    <!-- Staggered cards will be injected here -->
+                </div>
+            </div>
+
+            <div id="analytics-view" style="display: none; margin-top: 32px;">
+                <div class="details-grid">
+                    <div class="automation-box">
+                        <div class="uppercase-label">Seniority Distribution</div>
+                        <div id="seniority-chart" style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+                            <!-- Bars will be injected here -->
+                        </div>
+                    </div>
+                    <div class="automation-box">
+                        <div class="uppercase-label">Top Skills in Pool</div>
+                        <div id="skills-chart" style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+                            <!-- Bars will be injected here -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </div>
