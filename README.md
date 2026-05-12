@@ -56,4 +56,4 @@ To run Kairos locally for development:
 - **Client-Side Only**: All PDF parsing and analysis happen in your browser. No resume data is sent to external servers.
 - **Bias Reduction**: Designed with a "Blind Mode first" philosophy to ensure merit-based hiring.
 
-Built for Kairos · Powered by Claude Code
+Built for Kairos · Powered by Kairos AI
