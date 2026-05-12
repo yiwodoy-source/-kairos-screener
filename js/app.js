@@ -19,6 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const analyticsView = document.getElementById('analytics-view');
     const jdFeedback = document.getElementById('jd-feedback');
     const themeToggle = document.getElementById('theme-toggle');
+    const sourceBtn = document.getElementById('source-btn');
+    const sourcingConsole = document.getElementById('sourcing-console');
+    const sourcingLogs = document.getElementById('sourcing-logs');
+    const sourcingProgress = document.getElementById('sourcing-progress');
 
     let processedCandidates = [];
 
@@ -296,6 +300,80 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
         };
+    }
+
+    // --- Sourcing Integration ---
+
+    async function pollSourcingStatus() {
+        try {
+            const response = await fetch('http://localhost:5000/sourcing-status');
+            const data = await response.json();
+
+            sourcingProgress.innerText = `${data.progress}%`;
+            sourcingLogs.innerHTML = data.logs.map(log => `<div>> ${log}</div>`).join('');
+            sourcingConsole.scrollTop = sourcingConsole.scrollHeight;
+
+            if (data.active) {
+                setTimeout(pollSourcingStatus, 1000);
+            } else {
+                sourceBtn.disabled = false;
+                sourceBtn.innerHTML = `<i data-lucide="search" size="16"></i> Start Sourcing`;
+                lucide.createIcons();
+
+                if (data.results.length > 0) {
+                    // Inject results into workspace
+                    data.results.forEach(cand => {
+                        const fileTag = document.createElement('div');
+                        fileTag.className = 'candidate-tag';
+                        fileTag.style = "background: #F1F5F9; padding: 4px 12px; border-radius: 6px; margin: 4px; display: inline-block; font-size: 13px; border: 1px solid #E2E8F0;";
+                        fileTag.innerText = `🔍 ${cand.name}`;
+                        fileTag.dataset.text = cand.text;
+                        fileTag.dataset.name = cand.name;
+                        resumeContainer.appendChild(fileTag);
+                    });
+
+                    // Trigger auto-score
+                    checkAutoScore();
+                }
+            }
+        } catch (err) {
+            console.error("Failed to poll sourcing status:", err);
+        }
+    }
+
+    if (sourceBtn) {
+        sourceBtn.addEventListener('click', async () => {
+            const jd = jdTextarea.value.trim();
+            const keywords = jd ? jd.split(' ').slice(0, 5) : ['Software Engineer'];
+
+            sourceBtn.disabled = true;
+            sourceBtn.innerHTML = `Sourcing <span class="dot-pulse">...</span>`;
+            sourcingConsole.style.display = 'block';
+            sourcingLogs.innerHTML = '<div>> Connecting to Kairos Scraper...</div>';
+
+            try {
+                const response = await fetch('http://localhost:5000/start-sourcing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keywords })
+                });
+
+                if (response.ok) {
+                    pollSourcingStatus();
+                } else {
+                    const err = await response.json();
+                    sourcingLogs.innerHTML += `<div style="color: #ff0000;">> Error: ${err.error}</div>`;
+                    sourceBtn.disabled = false;
+                    sourceBtn.innerHTML = `<i data-lucide="search" size="16"></i> Start Sourcing`;
+                    lucide.createIcons();
+                }
+            } catch (err) {
+                sourcingLogs.innerHTML += `<div style="color: #ff0000;">> Fatal: Scraper service not reachable. Please ensure the backend is running.</div>`;
+                sourceBtn.disabled = false;
+                sourceBtn.innerHTML = `<i data-lucide="search" size="16"></i> Start Sourcing`;
+                lucide.createIcons();
+            }
+        });
     }
 
     // --- Actions ---

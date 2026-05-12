@@ -39,14 +39,21 @@ Since Kairos is a static web application (HTML/CSS/JS), it can be deployed for f
 
 ## 🛠️ Local Development
 
-To run Kairos locally for development:
+To run Kairos locally with real-time sourcing:
 
-1. Clone the repository.
-2. Open a terminal in the project root.
-3. Start a local server:
+1. **Clone the repository.**
+2. **Install Sourcing Backend Dependencies:**
    ```bash
-   # If you have Python installed
-   python3 -m http.server 3000
+   pip install flask flask-cors playwright
+   playwright install chromium
+   ```
+3. **Start the Frontend & Backend:**
+   ```bash
+   # Start the Frontend
+   python3 -m http.server 3000 &
+
+   # Start the Sourcing Service
+   python3 scraper_service.py
    ```
 4. Open your browser to `http://localhost:3000`.
 
