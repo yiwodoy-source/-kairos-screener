@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const listContainer = document.getElementById('candidate-list-container');
     const analyticsView = document.getElementById('analytics-view');
     const jdFeedback = document.getElementById('jd-feedback');
+    const themeToggle = document.getElementById('theme-toggle');
 
     let processedCandidates = [];
 
@@ -26,7 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = {
             jd: jdTextarea.value,
             candidates: processedCandidates,
-            blindMode: blindModeToggle.checked
+            blindMode: blindModeToggle.checked,
+            theme: document.body.getAttribute('data-theme')
         };
         localStorage.setItem('kairos_workspace', JSON.stringify(data));
     }
@@ -39,6 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (jdTextarea.value) analyzeJD(jdTextarea.value);
             processedCandidates = data.candidates || [];
             blindModeToggle.checked = !!data.blindMode;
+
+            if (data.theme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                themeToggle.innerHTML = `<i data-lucide="moon" size="16"></i>`;
+                lucide.createIcons();
+            }
 
             if (processedCandidates.length > 0) {
                 resultsSection.style.display = 'block';
@@ -96,6 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     jdUpload.addEventListener('click', () => handleFileUpload(jdUpload, jdTextarea, true));
     resumeUpload.addEventListener('click', () => handleFileUpload(resumeUpload, resumeContainer, false));
+
+    themeToggle.addEventListener('click', () => {
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        themeToggle.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" size="16"></i>`;
+        lucide.createIcons();
+        saveToStorage();
+    });
 
     resetBtn.addEventListener('click', () => {
         if (confirm('Are you sure you want to clear the entire workspace?')) {
@@ -306,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const el = candidatesElements[i];
                 const res = calculateScore(jd, el.dataset.text);
                 processedCandidates.push({
+                id: Math.random().toString(36).substring(7).toUpperCase(),
                     name: el.dataset.name,
                 meta: res.seniority + " profile parsed from PDF",
                     ...res
@@ -401,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isBlindMode = blindModeToggle.checked;
 
         candidates.forEach((c, index) => {
-            const displayName = isBlindMode ? `Candidate ${Math.random().toString(36).substring(7).toUpperCase()}` : c.name;
+            const displayName = isBlindMode ? `Candidate ${c.id}` : c.name;
 
             const card = document.createElement('div');
             card.className = 'candidate-card staggered-entry';
@@ -449,9 +466,22 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <i data-lucide="copy" size="14"></i>
                             </button>
                             <div class="uppercase-label">OUTREACH DRAFT</div>
-                            <p style="font-size: 13px; color: var(--text-secondary); background: white; padding: 10px; border-radius: 6px; border: 1px solid var(--border-light);">
+                            <p style="font-size: 13px; color: var(--text-secondary); background: var(--bg-paper); padding: 10px; border-radius: 6px; border: 1px solid var(--border-light);">
                                 ${c.outreach}
                             </p>
+                        </div>
+                    </div>
+
+                    <div class="automation-grid" style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px;">
+                        <div class="automation-box">
+                            <div class="uppercase-label">COLLABORATION NOTES</div>
+                            <textarea class="writing-surface" style="min-height: 100px; padding: 12px; font-size: 13px;" placeholder="Add private team notes..."></textarea>
+                        </div>
+                        <div class="automation-box">
+                            <div class="uppercase-label">TEAM RATING</div>
+                            <div style="display: flex; gap: 4px; color: var(--brand-amber); cursor: pointer; font-size: 24px;">
+                                ★ ★ ★ ★ ★
+                            </div>
                         </div>
                     </div>
 

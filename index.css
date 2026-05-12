@@ -10,6 +10,22 @@
     --text-primary: #292524;
     --text-secondary: #78716C;
     --border-light: #E7E5E4;
+    --card-bg: white;
+}
+
+[data-theme="dark"] {
+    --brand-indigo: #818CF8;
+    --brand-amber: #FBBF24;
+    --bg-paper: #111827;
+    --bg-cream: #1F2937;
+    --text-primary: #F9FAFB;
+    --text-secondary: #9CA3AF;
+    --border-light: #374151;
+    --card-bg: #1F2937;
+    --success-bg: #064E3B;
+    --warning-bg: #78350F;
+    --danger-bg: #7F1D1D;
+}
     
     /* Semantic Colors */
     --success: #16A34A;
@@ -70,7 +86,7 @@ h1 {
 /* Layout */
 .top-bar {
     height: 64px;
-    background: white;
+    background: var(--card-bg);
     border-bottom: 1px solid var(--border-light);
     display: flex;
     align-items: center;
@@ -163,7 +179,7 @@ h1 {
     border: 1px solid var(--border-light);
     padding: 4px 12px;
     border-radius: 99px;
-    background: white;
+    background: var(--card-bg);
 }
 
 /* Writing Workspace */
@@ -210,7 +226,7 @@ h1 {
     gap: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: white;
+    background: var(--card-bg);
 }
 
 .dropzone:hover {
@@ -410,7 +426,7 @@ input:checked + .slider:before {
 }
 
 .candidate-card {
-    background: white;
+    background: var(--card-bg);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
     padding: 24px;
@@ -520,7 +536,7 @@ input:checked + .slider:before {
 }
 
 .automation-box {
-    background: #fdfdfd;
+    background: var(--card-bg);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     padding: 16px;
