@@ -2,8 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    // allow any host for the preview proxy
-    allowedHosts: ["all"],
+    // Experimental options if needed
   },
   async headers() {
     return [
