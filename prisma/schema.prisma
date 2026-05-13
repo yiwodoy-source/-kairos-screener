@@ -36,6 +36,7 @@ model Candidate {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   score       Int
   tier        String
+  tierClass         String    @default("tier-skip")
   seniority         String
   reasoning         String
   resumeText        String

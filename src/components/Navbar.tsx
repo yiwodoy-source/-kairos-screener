@@ -27,9 +27,17 @@ export default function Navbar() {
 
           <button
             className="flex items-center gap-2 text-xs font-medium px-4 py-2 border rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors text-muted-foreground"
-            onClick={() => {
+            onClick={async () => {
                if (confirm('Are you sure you want to clear the entire workspace?')) {
-                  localStorage.removeItem('kairos_workspace');
+                  localStorage.removeItem('kairos_blind_mode');
+                  try {
+                    await fetch('/api/workspace', {
+                      method: 'POST',
+                      body: JSON.stringify({ jdText: "", candidates: [] })
+                    });
+                  } catch (e) {
+                    console.error("Failed to clear DB workspace", e);
+                  }
                   window.location.reload();
                }
             }}

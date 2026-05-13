@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
             name: c.name,
             score: c.score,
             tier: c.tier,
+            tierClass: c.tierClass || "tier-skip",
             seniority: c.seniority,
             reasoning: c.reasoning,
             resumeText: c.resumeText || "",
