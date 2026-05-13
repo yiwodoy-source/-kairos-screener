@@ -54,7 +54,7 @@ export default function Home() {
         body: JSON.stringify({ jd, resume: "Senior React Developer with 5 years experience" })
       });
       const result = await response.json();
-      setCandidates([{ ...result, id: Math.random().toString(36).substr(2, 9) }, ...candidates]);
+      setCandidates([{ ...result, name: "Quick Scored Candidate", id: Math.random().toString(36).substr(2, 9) }, ...candidates]);
     } catch (error) {
       console.error(error);
     } finally {
@@ -133,7 +133,10 @@ export default function Home() {
         setSourcingLogs(prev => [...prev, "Error: Failed to reach sourcing service"]);
     } finally {
         setIsSourcing(false);
-        setTimeout(() => setProgress(0), 3000);
+        setTimeout(() => {
+          setProgress(0);
+          setSourcingLogs([]);
+        }, 5000);
     }
   };
 
@@ -219,8 +222,8 @@ export default function Home() {
                 </div>
               </div>
 
-              {isSourcing && (
-                <div className="mt-auto space-y-3">
+              {sourcingLogs.length > 0 && (
+                <div className="mt-auto space-y-3 animate-in fade-in duration-300">
                     <div className="flex justify-between text-[10px] uppercase font-bold text-muted-foreground">
                         <span>Scraper Progress</span>
                         <span>{progress}%</span>
