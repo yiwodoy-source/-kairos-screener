@@ -21,17 +21,17 @@ def scrape_candidates(keywords):
         results = [
             {
                 "name": "Sarah Chen",
-                "text": f"Senior Software Engineer specializing in {keywords[0] if keywords else 'Full Stack'}. 10 years experience with React and Cloud Architecture.",
+                "text": f"Senior Software Engineer specializing in {keywords[0] if keywords else 'Full Stack'}. 10 years experience with React and Cloud Architecture. Location: San Francisco, CA.",
                 "source": "LinkedIn"
             },
             {
                 "name": "Marcus Thorne",
-                "text": f"Lead {keywords[0] if keywords else 'Developer'} with a focus on performance optimization and team leadership. Expert in Node.js.",
+                "text": f"Lead {keywords[0] if keywords else 'Developer'} with a focus on performance optimization and team leadership. Expert in Node.js. Based in London, UK.",
                 "source": "GitHub"
             },
             {
                 "name": "Elena Rodriguez",
-                "text": f"Full Stack Developer proficient in {', '.join(keywords[:2]) if len(keywords) > 1 else 'Modern Web'}. Strong background in fintech.",
+                "text": f"Full Stack Developer proficient in {', '.join(keywords[:2]) if len(keywords) > 1 else 'Modern Web'}. Strong background in fintech. Lives in Madrid, Spain.",
                 "source": "Indeed"
             }
         ]

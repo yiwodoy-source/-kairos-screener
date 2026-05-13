@@ -15,6 +15,11 @@ interface CandidateResult {
   tierClass: string;
   seniority: string;
   reasoning: string;
+  location: string;
+  yearsOfExperience: number;
+  currentRole: string;
+  nextStep: string;
+  resumeText?: string;
 }
 
 export default function Home() {
@@ -29,18 +34,47 @@ export default function Home() {
 
   // Persistence
   useEffect(() => {
-    const saved = localStorage.getItem('kairos_workspace');
-    if (saved) {
-      const { jd: savedJd, candidates: savedCandidates, blindMode: savedBlind } = JSON.parse(saved);
-      setJd(savedJd || "");
-      setCandidates(savedCandidates || []);
-      setBlindMode(savedBlind || false);
-    }
+    const fetchWorkspace = async () => {
+      try {
+        const res = await fetch('/api/workspace');
+        if (res.ok) {
+          const data = await res.json();
+          if (data) {
+            setJd(data.jdText || "");
+            setCandidates(data.candidates || []);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load workspace", err);
+      }
+    };
+    fetchWorkspace();
+
+    const savedBlind = localStorage.getItem('kairos_blind_mode');
+    if (savedBlind) setBlindMode(savedBlind === 'true');
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('kairos_workspace', JSON.stringify({ jd, candidates, blindMode }));
-  }, [jd, candidates, blindMode]);
+    localStorage.setItem('kairos_blind_mode', blindMode.toString());
+  }, [blindMode]);
+
+  // Sync to DB when JD or Candidates change
+  useEffect(() => {
+    const syncWorkspace = async () => {
+        if (!jd && candidates.length === 0) return;
+        try {
+            await fetch('/api/workspace', {
+                method: 'POST',
+                body: JSON.stringify({ jdText: jd, candidates: candidates.slice(0, 10) }) // Sync top 10 for performance
+            });
+        } catch (err) {
+            console.error("Failed to sync workspace", err);
+        }
+    };
+
+    const timeout = setTimeout(syncWorkspace, 2000);
+    return () => clearTimeout(timeout);
+  }, [jd, candidates]);
 
   const handleScore = async () => {
     if (!jd) return alert("Please provide a Job Description");
@@ -49,12 +83,13 @@ export default function Home() {
     // In a real app, we would process multiple resumes here
     // Mocking one result for demonstration
     try {
+      const resume = "Senior React Developer with 5 years experience";
       const response = await fetch('/api/score', {
         method: 'POST',
-        body: JSON.stringify({ jd, resume: "Senior React Developer with 5 years experience" })
+        body: JSON.stringify({ jd, resume })
       });
       const result = await response.json();
-      setCandidates([{ ...result, name: "Quick Scored Candidate", id: Math.random().toString(36).substr(2, 9) }, ...candidates]);
+      setCandidates([{ ...result, name: "Quick Scored Candidate", id: Math.random().toString(36).substr(2, 9), resumeText: resume }, ...candidates]);
     } catch (error) {
       console.error(error);
     } finally {
@@ -80,7 +115,7 @@ export default function Home() {
           body: JSON.stringify({ jd, resume: text })
         });
         const result = await response.json();
-        setCandidates(prev => [{ ...result, id: Math.random().toString(36).substr(2, 9), name: file.name.split('.')[0] }, ...prev]);
+        setCandidates(prev => [{ ...result, id: Math.random().toString(36).substr(2, 9), name: file.name.split('.')[0], resumeText: text }, ...prev]);
       }
     } catch (error) {
       console.error("Upload error:", error);
@@ -123,7 +158,7 @@ export default function Home() {
         const scored = await Promise.all(data.results.map(async (c: { name: string; text: string }) => {
             const scoreRes = await fetch('/api/score', { method: 'POST', body: JSON.stringify({ jd, resume: c.text }) });
             const scoreData = await scoreRes.json();
-            return { ...scoreData, name: c.name, id: Math.random().toString(36).substr(2, 9) };
+            return { ...scoreData, name: c.name, id: Math.random().toString(36).substr(2, 9), resumeText: c.text };
         }));
 
         setProgress(100);
@@ -253,9 +288,13 @@ export default function Home() {
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
                         <h3 className="text-xl font-bold">{blindMode ? `Candidate ${c.id.toUpperCase()}` : c.name}</h3>
-                        <div className="flex items-center gap-3">
-                           <span className="text-xs text-muted-foreground">{c.seniority} Level</span>
-                           <div className="h-1 w-1 rounded-full bg-muted-foreground" />
+                        <div className="flex flex-wrap items-center gap-3">
+                           <span className="text-xs text-muted-foreground font-medium">{c.currentRole}</span>
+                           <div className="h-1 w-1 rounded-full bg-muted" />
+                           <span className="text-xs text-muted-foreground">{c.seniority} Level ({c.yearsOfExperience}y)</span>
+                           <div className="h-1 w-1 rounded-full bg-muted" />
+                           <span className="text-xs text-muted-foreground">{blindMode ? "Anonymized Location" : c.location}</span>
+                           <div className="h-1 w-1 rounded-full bg-muted" />
                            <span className={cn("text-xs font-bold uppercase tracking-widest",
                              c.tier === 'Strong match' ? 'text-green-500' : 'text-brand-amber'
                            )}>{c.tier}</span>
@@ -272,9 +311,15 @@ export default function Home() {
                           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Reasoning</div>
                           <p className="text-sm leading-relaxed text-muted-foreground">{c.reasoning}</p>
                        </div>
-                       <button className="self-end lg:self-center px-4 py-2 text-xs font-bold border rounded-lg hover:bg-secondary transition-colors">
-                          View Profile Details
-                       </button>
+                       <div className="flex flex-col gap-3 min-w-[200px]">
+                          <div className="text-[10px] font-bold text-brand-amber uppercase tracking-widest">Recommended Next Step</div>
+                          <div className="px-4 py-2 rounded-lg bg-brand-amber/10 border border-brand-amber/20 text-xs font-bold text-brand-amber text-center">
+                            {c.nextStep}
+                          </div>
+                          <button className="px-4 py-2 text-xs font-bold border rounded-lg hover:bg-secondary transition-colors">
+                            View Profile Details
+                          </button>
+                       </div>
                     </div>
                   </div>
                 ))}

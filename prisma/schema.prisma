@@ -36,10 +36,14 @@ model Candidate {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   score       Int
   tier        String
-  seniority   String
-  reasoning   String
-  resumeText  String
-  createdAt   DateTime  @default(now())
+  seniority         String
+  reasoning         String
+  resumeText        String
+  location          String    @default("Remote")
+  yearsOfExperience Int       @default(0)
+  currentRole       String    @default("Software Engineer")
+  nextStep          String    @default("Archive")
+  createdAt         DateTime  @default(now())
 }
 
 model Account {

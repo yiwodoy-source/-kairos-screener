@@ -8,6 +8,10 @@ export interface ScoringResult {
   questions: string[];
   outreach: string;
   seniority: string;
+  location: string;
+  yearsOfExperience: number;
+  currentRole: string;
+  nextStep: string;
 }
 
 export const calculateScore = (jd: string, resume: string): ScoringResult => {
@@ -86,6 +90,18 @@ export const calculateScore = (jd: string, resume: string): ScoringResult => {
   if (seniorityKeywords.senior.some((k) => resumeLower.includes(k))) seniority = "Senior";
   else if (seniorityKeywords.junior.some((k) => resumeLower.includes(k))) seniority = "Junior";
 
+  // Simple extraction logic for location, yearsOfExperience, and currentRole
+  const locationMatches = resume.match(/(?:Location|Address|City|Based in|Lives in):\s*([^\n\r,]+)/i) ||
+                          resume.match(/([A-Z][a-z]+(?: [A-Z][a-z]+)*, [A-Z]{2})/);
+  const location = locationMatches ? locationMatches[1] || locationMatches[0] : "Remote / Not Specified";
+
+  const experienceMatch = resume.match(/(\d+)\+?\s*(?:years|yrs)/i);
+  const yearsOfExperience = experienceMatch ? parseInt(experienceMatch[1]) : (seniority === "Senior" ? 8 : seniority === "Junior" ? 1 : 4);
+
+  const roleMatch = resume.match(/(?:Current Role|Position|Title):\s*([^\n\r]+)/i) ||
+                    resume.match(/^([^\n\r]+?)(?:\s+at\s+|\s+\|\s+)/m);
+  const currentRole = roleMatch ? roleMatch[1].trim() : (seniority + " Software Engineer");
+
   const topMatched = matchedSkills.slice(0, 3).join(", ");
   const reasoning = `Candidate shows ${finalScore}% alignment at a ${seniority} level. ${
     matchedSkills.length > 0
@@ -112,6 +128,13 @@ export const calculateScore = (jd: string, resume: string): ScoringResult => {
           matchedSkills[0] || "technology"
         }, we are looking for...`;
 
+  let nextStep = "Archive for future roles";
+  if (tier === "Strong match") {
+    nextStep = "Schedule First Interview";
+  } else if (tier === "Maybe") {
+    nextStep = "Add to Shortlist / HM Review";
+  }
+
   return {
     score: finalScore,
     tier,
@@ -122,5 +145,9 @@ export const calculateScore = (jd: string, resume: string): ScoringResult => {
     questions,
     outreach,
     seniority,
+    location,
+    yearsOfExperience,
+    currentRole,
+    nextStep,
   };
 };
