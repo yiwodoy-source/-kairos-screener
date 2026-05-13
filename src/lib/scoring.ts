@@ -12,6 +12,7 @@ export interface ScoringResult {
   yearsOfExperience: number;
   currentRole: string;
   nextStep: string;
+  profileUrl?: string;
 }
 
 export const calculateScore = (jd: string, resume: string): ScoringResult => {
@@ -149,5 +150,6 @@ export const calculateScore = (jd: string, resume: string): ScoringResult => {
     yearsOfExperience,
     currentRole,
     nextStep,
+    profileUrl: resume.match(/Profile: (https?:\/\/[^\s]+)/)?.[1],
   };
 };

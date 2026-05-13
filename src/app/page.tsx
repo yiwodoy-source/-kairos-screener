@@ -20,6 +20,7 @@ interface CandidateResult {
   currentRole: string;
   nextStep: string;
   resumeText?: string;
+  profileUrl?: string;
 }
 
 export default function Home() {
@@ -316,8 +317,11 @@ export default function Home() {
                           <div className="px-4 py-2 rounded-lg bg-brand-amber/10 border border-brand-amber/20 text-xs font-bold text-brand-amber text-center">
                             {c.nextStep}
                           </div>
-                          <button className="px-4 py-2 text-xs font-bold border rounded-lg hover:bg-secondary transition-colors">
-                            View Profile Details
+                          <button
+                            className="px-4 py-2 text-xs font-bold border rounded-lg hover:bg-secondary transition-colors"
+                            onClick={() => c.profileUrl && window.open(c.profileUrl, '_blank')}
+                          >
+                            View Live Profile
                           </button>
                        </div>
                     </div>
